@@ -1,11 +1,8 @@
 # how to run
-`
-npm install
-npm run start
-`
+`npm install`
+
+`npm run start`
 
 # how to build
-`
-npm run build
 
-`
+`npm run build`
