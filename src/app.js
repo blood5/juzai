@@ -88,7 +88,7 @@ export default class Application {
 
                 _b2.interaction.handleClicked(viewer, e, element);
 
-                if (this._endTouchTime && this._startTouchTime.getTime() - this._endTouchTime.getTime() <= 500 && $math.getDistance(this._endTouchClient, this._startTouchClient) <= 20) {
+                if (this._endTouchTime && this._startTouchTime.getTime() - this._endTouchTime.getTime() <= 500 && _b2.math.getDistance(this._endTouchClient, this._startTouchClient) <= 20) {
                     delete this._endTouchTime;
                     delete this._endTouchClient;
                     _b2.interaction.handleDoubleClicked(viewer, e, element);
@@ -97,7 +97,7 @@ export default class Application {
                     this._endTouchClient = this._startTouchClient;
                 }
             } else {
-                this._distance = $touch.getDistance(e);
+                this._distance = _b2.touch.getDistance(e);
                 this._zoom = viewer.getZoom();
             }
         };
