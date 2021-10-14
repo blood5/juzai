@@ -1444,7 +1444,6 @@ export default class Application {
                     .add(config.styles, 'vector.outline.pattern')
                     .name('虚线线框')
                     .onChange((v) => {
-                        console.log(v);
                         if (v) {
                             target.s('vector.outline.pattern', [1, 1]);
                         } else {
