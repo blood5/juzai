@@ -1319,6 +1319,7 @@ export default class Application {
                 'vector.outline.color': target.s('vector.outline.color'),
                 'vector.outline.width': target.s('vector.outline.width'),
                 'vector.outline.pattern': !!target.s('vector.outline.pattern'),
+                'vector.shape': target.s('vector.shape'),
             },
             seat: {
                 'grid.column.count': target.s('grid.column.count') || 1,
@@ -1449,6 +1450,12 @@ export default class Application {
                         } else {
                             target.s('vector.outline.pattern', [1, 0]);
                         }
+                    });
+                propertyFolder
+                    .add(config.styles, 'vector.shape', ['rect', 'roundrect'])
+                    .name('形状')
+                    .onChange((v) => {
+                        target.s('vector.shape', v);
                     });
             }
             propertyFolder.open();
