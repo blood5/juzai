@@ -1452,7 +1452,7 @@ export default class Application {
                         }
                     });
                 propertyFolder
-                    .add(config.styles, 'vector.shape', ['rect', 'roundrect'])
+                    .add(config.styles, 'vector.shape', ['rectangle', 'roundrect'])
                     .name('形状')
                     .onChange((v) => {
                         target.s('vector.shape', v);
