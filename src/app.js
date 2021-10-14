@@ -58,7 +58,50 @@ export default class Application {
      *init viewer
      */
     _initViewer() {
-        const viewer = this._viewer;
+        const viewer = this._viewer,
+            sm = this._selectionModel;
+        b2.interaction.TouchInteraction.prototype.handleTouchstart = function (e) {
+            _b2.html.preventDefault(e);
+            this.isMoving = false;
+            this.isSelecting = false;
+            if (e.touches.length == 1) {
+                var point = viewer.getLogicalPoint2(e);
+                var element = (this._element = viewer.getElementAt(point));
+                this._startTouchTime = new Date();
+                this._currentTouchPoint = point;
+                this._startTouchClient = this._currentTouchClient = this.getMarkerPoint(e);
+
+                if (element) {
+                    if (!sm.contains(element)) {
+                        sm.appendSelection(element);
+                        if (sm.contains(element)) {
+                            this.isSelecting = true;
+                        }
+                    } else if (sm.contains(element)) {
+                        sm.removeSelection(element);
+                        this.isSelecting = true;
+                    }
+                } else {
+                    this.isSelecting = false;
+                    sm.clearSelection();
+                }
+
+                _b2.interaction.handleClicked(viewer, e, element);
+
+                if (this._endTouchTime && this._startTouchTime.getTime() - this._endTouchTime.getTime() <= 500 && $math.getDistance(this._endTouchClient, this._startTouchClient) <= 20) {
+                    delete this._endTouchTime;
+                    delete this._endTouchClient;
+                    _b2.interaction.handleDoubleClicked(viewer, e, element);
+                } else {
+                    this._endTouchTime = this._startTouchTime;
+                    this._endTouchClient = this._startTouchClient;
+                }
+            } else {
+                this._distance = $touch.getDistance(e);
+                this._zoom = viewer.getZoom();
+            }
+        };
+
         let view = viewer.getView();
         document.body.appendChild(view);
         let winWidth, winHeight;
@@ -874,9 +917,10 @@ export default class Application {
                                     movable: false,
                                     styles: {
                                         'body.type': 'vector',
-                                        'vector.shape': 'rectangle',
+                                        'vector.shape': 'roundrect',
                                         // 'vector.fill.color': 'rgba(255,255,255,0.4)',
                                         'vector.fill.color': '#E3E3E3',
+                                        'vector.outline.pattern': [10, 10],
                                         'vector.outline.width': 0,
                                         'vector.outline.color': '#000000',
                                         'label.position': 'center',
@@ -1274,6 +1318,7 @@ export default class Application {
                 'vector.fill.color': target.s('vector.fill.color'),
                 'vector.outline.color': target.s('vector.outline.color'),
                 'vector.outline.width': target.s('vector.outline.width'),
+                'vector.outline.pattern': !!target.s('vector.outline.pattern'),
             },
             seat: {
                 'grid.column.count': target.s('grid.column.count') || 1,
@@ -1394,6 +1439,17 @@ export default class Application {
                     .name('边框线宽')
                     .onChange((v) => {
                         target.s('vector.outline.width', v);
+                    });
+                propertyFolder
+                    .add(config.styles, 'vector.outline.pattern')
+                    .name('虚线线框')
+                    .onChange((v) => {
+                        console.log(v);
+                        if (v) {
+                            target.s('vector.outline.pattern', [1, 1]);
+                        } else {
+                            target.s('vector.outline.pattern', [1, 0]);
+                        }
                     });
             }
             propertyFolder.open();
