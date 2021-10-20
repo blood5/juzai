@@ -1,0 +1,23 @@
+{
+    "name": "framework-example-dev",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.html",
+    "scripts": {
+        "start": "parcel index.html --open",
+        "start:app": "parcel app.html --open",
+        "build": "parcel build index.html --public-url ./ --out-dir docs",
+        "build:app": "parcel build app.html --public-url ./ --out-dir docs"
+    },
+    "dependencies": {
+        "parcel-bundler": "^1.6.1"
+    },
+    "devDependencies": {
+        "@babel/core": "7.2.0",
+        "dat.gui": "^0.7.7"
+    },
+    "resolutions": {
+        "@babel/preset-env": "7.13.8"
+    },
+    "keywords": []
+}
