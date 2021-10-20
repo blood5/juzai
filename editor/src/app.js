@@ -112,7 +112,7 @@ export default class Application {
         // viewer.setDragToPan(false);
         viewer.setRectSelectEnabled(true);
         viewer.setZoomDivVisible(false);
-        viewer.setTransparentSelectionEnable(true);
+        viewer.setTransparentSelectionEnable(false);
         viewer.setRectSelectEnabled(true);
         viewer.setScrollBarVisible(false);
 
