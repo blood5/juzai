@@ -425,6 +425,8 @@ export default class Application {
         model.forEach((data) => {
             if (data instanceof b2.Seat) {
                 data.setVisible(false);
+            } else if (data instanceof b2.Follower) {
+                data.setName('');
             }
         });
         _b2.callLater(() => {

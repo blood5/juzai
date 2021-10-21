@@ -940,6 +940,10 @@ export default class Application {
                                         'seat.price': 100,
                                         movable: false,
                                         'rect.select': true,
+                                        'business.region': '', // 区域
+                                        'business.tier': '', // 层数
+                                        'business.row': '', // 排号
+                                        'business.seat': '', //座位号
                                     },
                                 });
                                 node.setLayerId('top');
@@ -1314,6 +1318,10 @@ export default class Application {
             property: {
                 angle: target.getAngle(),
                 name: target.getName(),
+                region: target.c('business.region') || '',
+                tier: target.c('business.tier') || '',
+                row: target.c('business.row') || '',
+                seat: target.c('business.seat') || '',
                 visible: target.isVisible(),
                 movable: target.c('movable') || false,
                 selectable: target.c('selectable') || false,
@@ -1370,6 +1378,25 @@ export default class Application {
                             });
                         }
                     });
+                //      region: target.c('business.region') || '',
+                // tier: target.c('business.tier') || '',
+                // row: target.c('business.row') || '',
+                // seat: target.c('business.seat') || '',
+                propertyFolder
+                    .add(config.property, 'region')
+                    .name('区域')
+                    .onChange((v) => {
+                        target.c('business.region');
+                        if (target instanceof b2.Group) {
+                            const children = target.getChildren();
+                            children.forEach((child) => {
+                                if (child instanceof b2.Seat) {
+                                    child.setName(v);
+                                }
+                            });
+                        }
+                    });
+
                 propertyFolder
                     .add(config.property, 'angle')
                     .name('Angle')
