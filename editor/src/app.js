@@ -51,6 +51,10 @@ export default class Application {
         this._setting.setClientType('seat.price', 'number');
         this._setting.setClientType('movable', 'boolean');
         this._setting.setClientType('rect.select', 'boolean');
+        this._setting.setClientType('business.region', 'string');
+        this._setting.setClientType('business.tier', 'string');
+        this._setting.setClientType('business.row', 'string');
+        this._setting.setClientType('business.seat', 'string');
         this.loadTest();
     }
 
@@ -142,14 +146,14 @@ export default class Application {
                 height: winHeight,
             });
         };
-        viewer.addInteractionListener((e) => {
-            if (e.kind === 'clickElement') {
-                this._selectTarget = e.element;
-                this._lastData = this._selectionModel.getLastData();
-                this._lastPoint = viewer.getLogicalPoint(e.event);
-                this._initPropertyGUI();
-            }
-        });
+        // viewer.addInteractionListener((e) => {
+        //     if (e.kind === 'clickElement') {
+        //         this._selectTarget = e.element;
+        //         this._lastData = this._selectionModel.getLastData();
+        //         this._lastPoint = viewer.getLogicalPoint(e.event);
+        //         this._initPropertyGUI();
+        //     }
+        // });
 
         viewer.setMovableFunction((data) => {
             if (data.c('movable') === false) {
@@ -493,6 +497,10 @@ export default class Application {
                 clients: {
                     width: width,
                     height: height,
+                    'business.region': '', // 区域
+                    'business.tier': '', // 层数
+                    'business.row': '', // 排号
+                    'business.seat': '', //座位号
                 },
                 styles: {
                     'grid.border': 1,
@@ -943,7 +951,7 @@ export default class Application {
                                         'business.region': '', // 区域
                                         'business.tier': '', // 层数
                                         'business.row': '', // 排号
-                                        'business.seat': '', //座位号
+                                        'business.seat': `${i + 1}号`, //座位号
                                     },
                                 });
                                 node.setLayerId('top');
@@ -1000,6 +1008,10 @@ export default class Application {
                                         'row.column.name': `${row.name}${i + 1}号`,
                                         'seat.stats': '未分配',
                                         'seat.price': 100,
+                                        'business.region': '', // 区域
+                                        'business.tier': '', // 层数
+                                        'business.row': '', // 排号
+                                        'business.seat': `${i + 1}号`, //座位号
                                     },
                                 });
                                 node.setLayerId('top');
@@ -1079,6 +1091,10 @@ export default class Application {
                                         'row.column.name': `${row.name}${1}号`,
                                         'seat.stats': '未分配',
                                         'seat.price': 100,
+                                        'business.region': '', // 区域
+                                        'business.tier': '', // 层数
+                                        'business.row': '', // 排号
+                                        'business.seat': `${1}号`, //座位号
                                     },
                                 });
                                 node.setLayerId('top');
@@ -1110,6 +1126,10 @@ export default class Application {
                                             'row.column.name': `${row.name}${left}号`,
                                             'seat.stats': '未分配',
                                             'seat.price': 100,
+                                            'business.region': '', // 区域
+                                            'business.tier': '', // 层数
+                                            'business.row': '', // 排号
+                                            'business.seat': `${left}号`, //座位号
                                         },
                                     });
                                     left += 2;
@@ -1126,7 +1146,7 @@ export default class Application {
                                         movable: false,
                                         styles: {
                                             'body.type': 'vector',
-                                            'vector.shape': 'rectangle',
+                                            'vector.shape': 'roundrect',
                                             // 'vector.fill.color': 'rgba(255,255,255,0.4)',
                                             'vector.fill.color': '#E3E3E3',
                                             'vector.outline.width': 1,
@@ -1143,6 +1163,10 @@ export default class Application {
                                             'row.column.name': `${row.name}${right}号`,
                                             'seat.stats': '未分配',
                                             'seat.price': 100,
+                                            'business.region': '', // 区域
+                                            'business.tier': '', // 层数
+                                            'business.row': '', // 排号
+                                            'business.seat': `${right}号`, //座位号
                                         },
                                     });
                                     right += 2;
@@ -1164,7 +1188,7 @@ export default class Application {
                                     // movable: false,
                                     styles: {
                                         'body.type': 'vector',
-                                        'vector.shape': 'rectangle',
+                                        'vector.shape': 'roundrect',
                                         // 'vector.fill.color': 'rgba(255,255,255,0.4)',
                                         'vector.fill.color': '#E3E3E3',
                                         'vector.outline.width': 1,
@@ -1181,6 +1205,10 @@ export default class Application {
                                         'row.column.name': `${row.name}${left}号`,
                                         'seat.stats': '未分配',
                                         'seat.price': 100,
+                                        'business.region': '', // 区域
+                                        'business.tier': '', // 层数
+                                        'business.row': '', // 排号
+                                        'business.seat': `${left}号`, //座位号
                                     },
                                 });
                                 left += 2;
@@ -1200,7 +1228,7 @@ export default class Application {
                                     movable: false,
                                     styles: {
                                         'body.type': 'vector',
-                                        'vector.shape': 'rectangle',
+                                        'vector.shape': 'roundrect',
                                         // 'vector.fill.color': 'rgba(255,255,255,0.4)',
                                         'vector.fill.color': '#E3E3E3',
                                         'vector.outline.width': 1,
@@ -1217,6 +1245,10 @@ export default class Application {
                                         'row.column.name': `${row.name}${right}号`,
                                         'seat.stats': '未分配',
                                         'seat.price': 100,
+                                        'business.region': '', // 区域
+                                        'business.tier': '', // 层数
+                                        'business.row': '', // 排号
+                                        'business.seat': `${right}号`, //座位号
                                     },
                                 });
                                 right += 2;
@@ -1353,6 +1385,7 @@ export default class Application {
         };
 
         if (!target) return;
+        console.log(config);
         if (target instanceof b2.Follower) {
             if (this._guiproperty) {
                 this._guiproperty.destroy();
@@ -1378,23 +1411,67 @@ export default class Application {
                             });
                         }
                     });
-                //      region: target.c('business.region') || '',
-                // tier: target.c('business.tier') || '',
-                // row: target.c('business.row') || '',
-                // seat: target.c('business.seat') || '',
                 propertyFolder
                     .add(config.property, 'region')
                     .name('区域')
                     .onChange((v) => {
-                        target.c('business.region');
+                        target.c('business.region', v);
                         if (target instanceof b2.Group) {
-                            const children = target.getChildren();
-                            children.forEach((child) => {
-                                if (child instanceof b2.Seat) {
-                                    child.setName(v);
+                            const seats = target.getChildren();
+                            seats.forEach((seat) => {
+                                if (seat instanceof b2.Seat) {
+                                    seat.c('business.region', v);
+                                    const followers = seat.getChildren();
+                                    followers.forEach((follower) => {
+                                        follower.c('business.region', v);
+                                    });
                                 }
                             });
                         }
+                    });
+                propertyFolder
+                    .add(config.property, 'tier')
+                    .name('层数')
+                    .onChange((v) => {
+                        target.c('business.tier', v);
+                        if (target instanceof b2.Group) {
+                            const children = target.getChildren();
+                            children.forEach((seat) => {
+                                if (seat instanceof b2.Seat) {
+                                    seat.c('business.tier', v);
+                                    const followers = seat.getChildren();
+                                    followers.forEach((follower) => {
+                                        follower.c('business.tier', v);
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+                propertyFolder
+                    .add(config.property, 'row')
+                    .name('排号')
+                    .onChange((v) => {
+                        target.c('business.row', v);
+                        if (target instanceof b2.Group) {
+                            const children = target.getChildren();
+                            children.forEach((seat) => {
+                                if (seat instanceof b2.Seat) {
+                                    seat.c('business.row', v);
+                                    const followers = seat.getChildren();
+                                    followers.forEach((follower) => {
+                                        follower.c('business.row', v);
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+                propertyFolder
+                    .add(config.property, 'seat')
+                    .name('座号')
+                    .onChange((v) => {
+                        target.c('business.seat');
                     });
 
                 propertyFolder
