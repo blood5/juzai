@@ -7,7 +7,8 @@
       </view>
     </view>
     <view class="sites">
-      <canvas style="width: 100%; height: 100%; background-color: #007AFF;" canvas-id="siteCanvas" id="siteCanvas"></canvas>
+		 <web-view :webview-styles="webviewStyles" src="http://172.16.172.51:1234/"></web-view>
+      <!-- <canvas style="width: 100%; height: 100%; background-color: #007AFF;" canvas-id="siteCanvas" id="siteCanvas"></canvas> -->
     </view>
     <view class="selected-sites">
       <view :key="i" v-for="(item,i) in selectedSites" class="selected-site">
@@ -38,8 +39,6 @@
   import {
 	  dateFormat
   } from '@/utils/tool.js';
-  import b2 from '@/utils/b2.js';
-  import Application from './app.js';
 
   export default {
     data() {
@@ -85,11 +84,13 @@
       }
     },
     created() {
-	console.log('created');
-	console.log(dateFormat)
+		console.log('created');
+		console.log(dateFormat);
+		console.log(uni);
+		
     },
     onReady() {
-	console.log('onReady');
+		console.log('onReady');
     },
     methods: {
       clickClose(i){
@@ -98,10 +99,24 @@
       },
 	  handleOK(){
 		console.log('ok');
-		console.log(b2);
-		console.log(Application);
-		const application = new Application();
-		console.log(application);
+		console.log(uni);
+		 var context = uni.createCanvasContext('siteCanvas')
+		        context.setStrokeStyle("#00ff00")
+		        context.setLineWidth(5)
+		        context.rect(0, 0, 200, 200)
+		        context.stroke()
+		        context.setStrokeStyle("#ff0000");
+		        context.setLineWidth(2)
+		        context.moveTo(160, 100)
+		        context.arc(100, 100, 60, 0, 2 * Math.PI, true)
+		        context.moveTo(140, 100)
+		        context.arc(100, 100, 40, 0, Math.PI, false)
+		        context.moveTo(85, 80)
+		        context.arc(80, 80, 5, 0, 2 * Math.PI, true)
+		        context.moveTo(125, 80)
+		        context.arc(120, 80, 5, 0, 2 * Math.PI, true)
+		        context.stroke()
+		        context.draw();
 	  }
     }
   }

@@ -1,5 +1,6 @@
 import { align, insertStyle, isCtrlDown, isShiftDown, loadJSON, registerImage, saveJSON } from './util';
-import {testdatas} from './datas.js'
+import {testdatas} from './datas.js';
+ import b2 from '@/utils/b2.js';
 export default class Application {
     constructor(canvas) {
         this._viewer = new b2.Viewer();
