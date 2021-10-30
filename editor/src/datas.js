@@ -2905,6 +2905,7 @@ const testdatas = {
             p: { name: '侧翼15排', angle: -80, parent: 346, layerId: 'center', location: { x: 1234.426100889561, y: 721.1078828143786 }, width: 480, height: 20 },
             s: { 'grid.border': 1, 'grid.deep': 1, 'grid.deep.color': 'rgba(0,0,0,0.2)', 'grid.padding': 2, 'grid.column.count': 24, 'grid.row.count': 1, 'grid.fill': false, 'grid.fill.color': 'rgba(0,0,0,0.4)', 'label.position': 'left.left', 'shadow.xoffset': 0, 'shadow.yoffset': 0, 'shadow.blur': 0, 'select.padding': 0, 'select.width': 2, 'select.style': 'border' },
         },
+        { class: 'b2.Follower', ref: 349, p: { name: '剧在文化', layerId: 'top', location: { x: 819.8554918654546, y: -144.45539004454574 } }, s: { 'body.type': 'none', 'label.position': 'center', 'label.font': '30px arial' }, c: { movable: true } },
     ],
 };
 

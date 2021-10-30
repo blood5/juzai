@@ -451,6 +451,28 @@ export default class Application {
         });
     }
 
+    _drawText() {
+        this._viewer.setCreateElementInteractions((point) => {
+            const node = new b2.Follower({
+                name: '文字',
+                styles: {
+                    'body.type': 'none',
+                    'label.position': 'center',
+                },
+                clients: {
+                    selectable: true,
+                    movable: true,
+                },
+            });
+            node.setLayerId('top');
+            node.setCenterLocation(point);
+            this._viewer.setDefaultInteractions();
+            this._lastData = node;
+            this._lastPoint = point;
+            return node;
+        });
+    }
+
     /**
      * enter draw circle mode
      */
@@ -844,6 +866,10 @@ export default class Application {
                 },
                 edit: () => {
                     this._viewer.setEditInteractions();
+                },
+                drawText: () => {
+                    console.log('绘制文字');
+                    this._drawText();
                 },
                 drawRect: () => {
                     console.log('绘制矩形');
@@ -1301,6 +1327,7 @@ export default class Application {
         let drawFolder = gui.addFolder('Draw');
         drawFolder.add(options.draw, 'default').name('默认交互');
         drawFolder.add(options.draw, 'edit').name('编辑模式');
+        drawFolder.add(options.draw, 'drawText').name('绘制文字');
         drawFolder.add(options.draw, 'drawRect').name('绘制矩形');
         drawFolder.add(options.draw, 'drawCircle').name('绘制圆形');
         drawFolder.add(options.draw, 'drawShape').name('绘制多边形');
@@ -1360,6 +1387,7 @@ export default class Application {
             },
             styles: {
                 'label.alpha': target.s('label.alpha') || 0,
+                'label.font': target.s('label.font') || '30px arial',
                 'label.position': target.s('label.position'),
                 'label.xoffset': target.s('label.xoffset'),
                 'label.yoffset': target.s('label.yoffset'),
@@ -1506,6 +1534,12 @@ export default class Application {
                     .name('Label透明度')
                     .onChange((v) => {
                         target.s('label.alpha', v);
+                    });
+                propertyFolder
+                    .add(config.styles, 'label.font')
+                    .name('Label字体')
+                    .onChange((v) => {
+                        target.s('label.font', v);
                     });
                 propertyFolder
                     .add(config.styles, 'label.position', ['top.top', 'center', 'bottom.bottom', 'left.left', 'right.right'])
