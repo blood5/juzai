@@ -1,6 +1,9 @@
-import { Pane } from "tweakpane";
 import { GUI } from "dat.gui";
 import { testdatas } from "./datas";
+import Menu from "./menu";
+import Property from "./property";
+import Scene from "./scene";
+
 import {
   align,
   insertStyle,
@@ -12,222 +15,122 @@ import {
 } from "./util";
 
 export default class Application {
-  constructor(canvas) {
-    this._initPane();
-    // this._viewer = new b2.Viewer();
-    // this._model = this._viewer.getModel();
-    // this._selectionModel = this._model.getSelectionModel();
-    // this._initGUI();
-
-    return;
+  constructor() {
+    this._scene = new Scene(this);
+    this._model = this._scene.model;
+    this._sm = this._selectionModel = this._model.getSelectionModel();
+    this._initLayer();
+    this._initOverview();
     this._undoManager = this._model.getUndoManager();
     this._undoManager.setEnabled(true);
 
-    this._canvas = canvas;
-    this._selectTarget = null;
-    this._colorMap = {
-      180: "#2A7FFF",
-      280: "#9720F2",
-      380: "#FF2A78",
-      480: "#00AE5C",
-      580: "#E8E009",
-      680: "#E35E2C",
-      780: "#D42424",
-      880: "#2AC5FF",
-      980: "#713DEE",
-      1080: "#F536E8",
-    };
-
-    this._initGUI();
-    this._initViewer();
-    this._initLayer();
-    this._initOverview();
+    this._menu = new Menu(this);
+    this._property = new Property(this);
+    // this._selectTarget = null;
     this._initEvent();
-    this._registerImages();
-    this._lastData = null;
-    this._lastPoint = null;
+    // // this._registerImages();
+    // this._lastData = null;
+    // this._lastPoint = null;
     this._gridWidth = 20;
     this._gridHeight = 20;
-    this._groups = [];
-    this._lock = false;
+    // this._groups = [];
+    // this._lock = false;
 
-    this._setting = new b2.SerializationSettings();
-    this._setting.setPropertyType("name2", "string");
-    this._setting.setPropertyType("angle", "number");
-    this._setting.setClientType("row.number", "number");
-    this._setting.setClientType("row.name", "string");
-    this._setting.setClientType("column.number", "number");
-    this._setting.setClientType("column.name", "string");
-    this._setting.setClientType("row.column.name", "string");
-    this._setting.setClientType("seat.stats", "string");
-    this._setting.setClientType("seat.price", "number");
-    this._setting.setClientType("movable", "boolean");
-    this._setting.setClientType("rect.select", "boolean");
-    this._setting.setClientType("business.region", "string");
-    this._setting.setClientType("business.tier", "string");
-    this._setting.setClientType("business.row", "string");
-    this._setting.setClientType("business.seat", "string");
-    // this.loadTest();
+    // this._setting = new b2.SerializationSettings();
+    // this._setting.setPropertyType("name2", "string");
+    // this._setting.setPropertyType("angle", "number");
+    // this._setting.setClientType("row.number", "number");
+    // this._setting.setClientType("row.name", "string");
+    // this._setting.setClientType("column.number", "number");
+    // this._setting.setClientType("column.name", "string");
+    // this._setting.setClientType("row.column.name", "string");
+    // this._setting.setClientType("seat.stats", "string");
+    // this._setting.setClientType("seat.price", "number");
+    // this._setting.setClientType("movable", "boolean");
+    // this._setting.setClientType("rect.select", "boolean");
+    // this._setting.setClientType("business.region", "string");
+    // this._setting.setClientType("business.tier", "string");
+    // this._setting.setClientType("business.row", "string");
+    // this._setting.setClientType("business.seat", "string");
+    // this._colorMap = {
+    //   180: "#2A7FFF",
+    //   280: "#9720F2",
+    //   380: "#FF2A78",
+    //   480: "#00AE5C",
+    //   580: "#E8E009",
+    //   680: "#E35E2C",
+    //   780: "#D42424",
+    //   880: "#2AC5FF",
+    //   980: "#713DEE",
+    //   1080: "#F536E8",
+    // };
+    this.loadTest();
+  }
+
+  get menu() {
+    return this._menu;
+  }
+
+  get property() {
+    return this._property;
+  }
+
+  get scene() {
+    return this._scene;
+  }
+
+  get model() {
+    return this._model;
+  }
+
+  get undoManager() {
+    return this._undoManager;
   }
 
   _initPane() {
     const pane = (this._pane = new Pane({
       title: "菜单",
-      expanded: false,
+      expanded: true,
     }));
+    pane.element.parentElement.style.zIndex = 9999;
+    pane.element.parentElement.style.position = "absolute";
+    pane.element.parentElement.style.left = "0px";
+    pane.element.parentElement.style.top = "0px";
 
     const PARAMS = {
       factor: 123,
       title: "hello",
       color: "#ff0055",
+      speed: 100,
+      acceleration: 100,
+      randomness: 100,
     };
 
-    pane.addBinding(PARAMS, "factor");
-    pane.addBinding(PARAMS, "title");
-    pane.addBinding(PARAMS, "color");
-  }
-  /**
-   *init viewer
-   */
-  _initViewer() {
-    const viewer = this._viewer,
-      sm = this._selectionModel;
-    b2.interaction.TouchInteraction.prototype.handleTouchstart = function (e) {
-      _b2.html.preventDefault(e);
-      this.isMoving = false;
-      this.isSelecting = false;
-      if (e.touches.length == 1) {
-        var point = viewer.getLogicalPoint2(e);
-        var element = (this._element = viewer.getElementAt(point));
-        this._startTouchTime = new Date();
-        this._currentTouchPoint = point;
-        this._startTouchClient = this._currentTouchClient =
-          this.getMarkerPoint(e);
+    // pane.addBinding(PARAMS, "factor");
+    // pane.addBinding(PARAMS, "title");
+    // pane.addBinding(PARAMS, "color");
 
-        if (element) {
-          if (!sm.contains(element)) {
-            sm.appendSelection(element);
-            if (sm.contains(element)) {
-              this.isSelecting = true;
-            }
-          } else if (sm.contains(element)) {
-            sm.removeSelection(element);
-            this.isSelecting = true;
-          }
-        } else {
-          this.isSelecting = false;
-          sm.clearSelection();
-        }
-
-        _b2.interaction.handleClicked(viewer, e, element);
-
-        if (
-          this._endTouchTime &&
-          this._startTouchTime.getTime() - this._endTouchTime.getTime() <=
-            500 &&
-          _b2.math.getDistance(this._endTouchClient, this._startTouchClient) <=
-            20
-        ) {
-          delete this._endTouchTime;
-          delete this._endTouchClient;
-          _b2.interaction.handleDoubleClicked(viewer, e, element);
-        } else {
-          this._endTouchTime = this._startTouchTime;
-          this._endTouchClient = this._startTouchClient;
-        }
-      } else {
-        this._distance = _b2.touch.getDistance(e);
-        this._zoom = viewer.getZoom();
-      }
-    };
-
-    let view = viewer.getView();
-    document.body.appendChild(view);
-    let winWidth, winHeight;
-    viewer.setEditLineColor("#000000");
-    viewer.setEditLineWidth(2);
-    viewer.setResizePointFillColor("green");
-    viewer.setToolTipEnabled(false);
-    // viewer.setDragToPan(false);
-    viewer.setRectSelectEnabled(true);
-    viewer.setZoomDivVisible(false);
-    viewer.setTransparentSelectionEnable(false);
-    viewer.setRectSelectEnabled(true);
-    viewer.setScrollBarVisible(false);
-
-    function findDimensions() {
-      if (window.innerWidth) winWidth = window.innerWidth;
-      else if (document.body && document.body.clientWidth)
-        winWidth = document.body.clientWidth;
-      if (window.innerHeight) winHeight = window.innerHeight;
-      else if (document.body && document.body.clientHeight)
-        winHeight = document.body.clientHeight;
-      if (
-        document.documentElement &&
-        document.documentElement.clientHeight &&
-        document.documentElement.clientWidth
-      ) {
-        winHeight = document.documentElement.clientHeight;
-        winWidth = document.documentElement.clientWidth;
-      }
-    }
-    findDimensions();
-    viewer.adjustBounds({
-      x: 0,
-      y: 0,
-      width: window.innerWidth,
-      height: window.innerHeight,
+    const f1 = pane.addFolder({
+      title: "Basic",
+      expanded: true,
     });
-    window.onresize = function (e) {
-      findDimensions();
-      viewer.adjustBounds({
-        x: 0,
-        y: 0,
-        width: winWidth,
-        height: winHeight,
+    f1.addBinding(PARAMS, "speed");
+
+    const f2 = pane.addFolder({
+      title: "Advanced",
+      expanded: false,
+    });
+    f2.addBinding(PARAMS, "acceleration");
+    f2.addBinding(PARAMS, "randomness");
+
+    const btn = pane
+      .addButton({
+        title: "Click",
+        label: "Click",
+      })
+      .on("click", () => {
+        console.log("click");
       });
-    };
-    // viewer.addInteractionListener((e) => {
-    //     if (e.kind === 'clickElement') {
-    //         this._selectTarget = e.element;
-    //         this._lastData = this._selectionModel.getLastData();
-    //         this._lastPoint = viewer.getLogicalPoint(e.event);
-    //         this._initPropertyGUI();
-    //     }
-    // });
-
-    viewer.setMovableFunction((data) => {
-      if (data.c("movable") === false) {
-        return false;
-      }
-      return !this._lock;
-    });
-
-    this._selectionModel.addSelectionChangeListener((e) => {
-      const data = this._selectionModel.getLastData();
-      this._selectTarget = data;
-      this._initPropertyGUI();
-      if (this._shiftDown && data instanceof b2.Seat) {
-        const parent = data.getParent();
-        if (parent && parent instanceof b2.Group) {
-          const seats = parent.getChildren();
-          viewer.getSelectionModel().appendSelection(seats);
-        }
-      }
-    });
-
-    this._selectionModel.setFilterFunction((data) => {
-      if (data.c("selectable") === false) {
-        return false;
-      }
-      return true;
-    });
-
-    this._viewer.setRectSelectFilter((data) => {
-      if (data.c("rect.select") || data.getParent() instanceof b2.Seat)
-        return true;
-      return false;
-    });
   }
 
   _initLayer() {
@@ -246,14 +149,15 @@ export default class Application {
    * init events
    */
   _initEvent() {
-    this._model.addDataBoxChangeListener((e) => {
-      const kind = e.kind,
-        data = e.data;
-      if (kind == "add") {
-      }
-    }, this);
+    // this._model.addDataBoxChangeListener((e) => {
+    //   const kind = e.kind,
+    //     data = e.data;
+    //   if (kind == "add") {
+    //   }
+    // }, this);
 
     document.addEventListener("keydown", (e) => {
+      console.log(e);
       if (isCtrlDown(e)) {
         if (e.key === "c") {
           //ctrl+c
@@ -269,6 +173,9 @@ export default class Application {
       }
       if (isShiftDown(e)) {
         this._shiftDown = true;
+      }
+      if (e.key === "Backspace") {
+        this.model.removeSelection();
       }
     });
 
@@ -350,10 +257,10 @@ export default class Application {
   }
 
   _initOverview() {
-    const overview = (this._overview = new b2.Overview(this._viewer));
+    const overview = (this._overview = new b2.Overview(this._scene.viewer));
     overview.setFillColor("rgba(184,211,240,0.5)");
     const overviewDiv = document.createElement("div");
-    overviewDiv.style.background = "#424242";
+    overviewDiv.style.background = "#758a99";
     overviewDiv.style.position = "absolute";
     overviewDiv.style.right = "10px";
     overviewDiv.style.bottom = "20px";
@@ -412,6 +319,10 @@ export default class Application {
     model.add(link);
   }
 
+  reset() {
+    this._model?.clear();
+    this._scene.viewer.zoomReset(false);
+  }
   /**
    * clear datas
    */
@@ -440,9 +351,8 @@ export default class Application {
     new b2.JsonSerializer(model, this._setting).deserialize(
       JSON.stringify(testdatas)
     );
-
     _b2.callLater(() => {
-      this._viewer.zoomOverview();
+      this._scene.zoomOverview();
     });
   }
 
@@ -465,8 +375,10 @@ export default class Application {
   /**
    * enter draw rectangle mode
    */
-  _drawRect() {
-    this._viewer.setCreateElementInteractions((point) => {
+  drawRect() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateElementInteractions((point) => {
       const node = new b2.Follower({
         name: "Rectangle",
         width: 200,
@@ -489,16 +401,22 @@ export default class Application {
       });
       node.setLayerId("bottom");
       node.setCenterLocation(point);
-      this._viewer.setEditInteractions();
-      this._selectionModel.setSelection(node);
-      this._lastData = node;
-      this._lastPoint = point;
+      viewer.setEditInteractions();
+      sm.setSelection(node);
+      // this._selectionModel.setSelection(node);
+      // this._lastData = node;
+      // this._lastPoint = point;
       return node;
     });
   }
 
-  _drawText() {
-    this._viewer.setCreateElementInteractions((point) => {
+  /**
+   * 创建文字
+   */
+  drawText() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateElementInteractions((point) => {
       const node = new b2.Follower({
         name: "文字",
         styles: {
@@ -512,9 +430,10 @@ export default class Application {
       });
       node.setLayerId("top");
       node.setCenterLocation(point);
-      this._viewer.setDefaultInteractions();
-      this._lastData = node;
-      this._lastPoint = point;
+      viewer.setDefaultInteractions();
+      sm.setSelection(node);
+      // this._lastData = node;
+      // this._lastPoint = point;
       return node;
     });
   }
@@ -522,8 +441,10 @@ export default class Application {
   /**
    * enter draw circle mode
    */
-  _drawCircle() {
-    this._viewer.setCreateElementInteractions((point) => {
+  drawCircle() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateElementInteractions((point) => {
       const node = new b2.Follower({
         name: "Circle",
         width: 200,
@@ -546,16 +467,19 @@ export default class Application {
       });
       node.setLayerId("bottom");
       node.setCenterLocation(point);
-      this._viewer.setEditInteractions();
-      this._model.getSelectionModel().setSelection(node);
-      this._lastData = this._viewer.getSelectionModel().getLastData();
-      this._lastPoint = point;
+      viewer.setEditInteractions();
+      sm.setSelection(node);
+      // this._model.getSelectionModel().setSelection(node);
+      // this._lastData = viewer.getSelectionModel().getLastData();
+      // this._lastPoint = point;
       return node;
     });
   }
 
-  _drawGrid() {
-    this._viewer.setCreateElementInteractions((point) => {
+  drawGrid() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateElementInteractions((point) => {
       const width = this._gridWidth,
         height = this._gridHeight,
         count = 6;
@@ -591,18 +515,21 @@ export default class Application {
       grid.setLayerId("center");
       grid.setSize(width * count, height);
       grid.setCenterLocation(point);
-      this._model.getSelectionModel().setSelection(grid);
-      this._lastData = this._viewer.getSelectionModel().getLastData();
-      this._lastPoint = point;
-      this._viewer.setDefaultInteractions();
+      // this._model.getSelectionModel().setSelection(grid);
+      // this._lastData = viewer.getSelectionModel().getLastData();
+      // this._lastPoint = point;
+      viewer.setDefaultInteractions();
+      sm.setSelection(grid);
       return grid;
     });
   }
   /**
    * enter draw shape mode
    */
-  _drawShape() {
-    this._viewer.setCreateShapeNodeInteractions((points) => {
+  drawShape() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateShapeNodeInteractions((points) => {
       const node = new b2.ShapeNode({
         name: "",
         styles: {
@@ -622,10 +549,11 @@ export default class Application {
       });
       node.setLayerId("bottom");
       node.setPoints(points);
-      this._model.getSelectionModel().setSelection(node);
-      this._lastData = this._viewer.getSelectionModel().getLastData();
-      this._lastPoint = node.getCenterLocation();
-      this._viewer.setEditInteractions();
+      // this._model.getSelectionModel().setSelection(node);
+      // this._lastData = viewer.getSelectionModel().getLastData();
+      // this._lastPoint = node.getCenterLocation();
+      viewer.setEditInteractions();
+      sm.setSelection(node);
       return node;
     });
   }
@@ -633,8 +561,10 @@ export default class Application {
   /**
    * enter draw curve mode
    */
-  _drawCurve() {
-    this._viewer.setCreateShapeNodeInteractions((points) => {
+  drawCurve() {
+    const viewer = this.scene.viewer;
+    const sm = this._sm;
+    viewer.setCreateShapeNodeInteractions((points) => {
       const node = new b2.ShapeNode({
         name: "curve",
         styles: {
@@ -674,8 +604,9 @@ export default class Application {
       });
       node.setSegments(segments);
       node.setLayerId("bottom");
-      this._model.getSelectionModel().setSelection(node);
-      this._viewer.setEditInteractions(false, true);
+      // this._model.getSelectionModel().setSelection(node);
+      viewer.setEditInteractions(false, true);
+      sm.setSelection(node);
       return node;
     });
   }
@@ -683,9 +614,10 @@ export default class Application {
   /**
    * do align
    */
-  _doAlign(type) {
+  doAlign(type) {
     console.log(type);
-    const nodes = this._viewer.getSelectionModel().getSelection().toArray();
+    const selection = this._sm.getSelection();
+    const nodes = selection.toArray();
     align(nodes, type);
   }
 
@@ -855,574 +787,7 @@ export default class Application {
   /**
    * init GUI
    */
-  _initGUI() {
-    const gui = (this._gui = new GUI({ autoPlace: true, width: 160 }));
-    gui.domElement.parentElement.style.zIndex = 9999;
-    gui.domElement.style.position = "absolute";
-    gui.domElement.style.left = "0px";
-    gui.domElement.style.top = "0px";
-    gui.name = "菜单";
-
-    insertStyle(`
-		.dg .c {
-    		float: left;
-    		width: 40%;
-    		position: relative;
-		}
-
-		.dg .c input[type='text'] {
-  			border: 0;
-  			width: 100%;
- 			float: right;
-		}
-		.dg .property-name {
-  			width: 60%;
-		}
-		`);
-
-    const options = {
-      toolbar: {
-        new: () => {
-          console.log("new");
-          this._initViewer();
-          this.clear();
-        },
-        clear: () => {
-          this.clear();
-        },
-        save: () => {
-          console.log("save");
-          this.save();
-        },
-        load: () => {
-          this.clear();
-          this.load();
-        },
-        delete: () => {
-          if (this._selectTarget) {
-            this._model.remove(this._selectTarget);
-          }
-        },
-        lock: false,
-        zoomoverview: () => {
-          this._viewer.zoomOverview();
-        },
-        undo: () => {
-          this._undoManager.undo();
-        },
-        redo: () => {
-          this._undoManager.redo();
-        },
-      },
-      draw: {
-        default: () => {
-          this._viewer.setDefaultInteractions();
-        },
-        edit: () => {
-          this._viewer.setEditInteractions();
-        },
-        drawText: () => {
-          console.log("绘制文字");
-          this._drawText();
-        },
-        drawRect: () => {
-          console.log("绘制矩形");
-          this._drawRect();
-        },
-        drawCircle: () => {
-          console.log("绘制圆形");
-          this._drawCircle();
-        },
-        drawShape: () => {
-          console.log("绘制多边形");
-          this._drawShape();
-        },
-        drawCurve: () => {
-          console.log("绘制弧线");
-          this._drawCurve();
-        },
-        drawGrid: () => {
-          console.log("编排虚拟座位");
-          this._drawGrid();
-        },
-      },
-      align: {
-        top: () => {
-          this._doAlign("top");
-        },
-        bottom: () => {
-          this._doAlign("bottom");
-        },
-        left: () => {
-          this._doAlign("left");
-        },
-        right: () => {
-          this._doAlign("right");
-        },
-        horizontalcenter: () => {
-          this._doAlign("horizontalcenter");
-        },
-        verticalcenter: () => {
-          this._doAlign("verticalcenter");
-        },
-      },
-      operation: {
-        group: () => {
-          this._group();
-        },
-        ungroup: () => {
-          this._ungroup();
-        },
-        mirrorX: () => {
-          this._mirrorX();
-        },
-        mirrorY: () => {
-          this._mirrorY();
-        },
-      },
-      business: {
-        sort1: () => {
-          console.log("sort1");
-          const model = this._model;
-          if (this._selectTarget && this._selectTarget instanceof b2.Group) {
-            console.log(this._selectTarget);
-            const group = this._selectTarget,
-              row = {
-                name: group.c("row.name"),
-                number: group.c("row.number"),
-              };
-            console.log(row);
-
-            const grids = this._selectTarget.getChildren();
-            let gridsArray = grids.toArray().sort((a, b) => {
-              return a.getCenterLocation().x - b.getCenterLocation().x;
-            });
-            console.log(grids);
-            let seats = [],
-              seatCount = 0;
-            gridsArray.forEach((grid, index) => {
-              // grid.setName(index + 1);
-              const count = grid.getStyle("grid.column.count");
-              for (let i = seatCount; i < seatCount + count; i++) {
-                const node = new b2.Follower({
-                  name: i + 1,
-                  movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": i + 1,
-                    "column.name": `${i + 1}号`,
-                    "row.column.name": `${row.name}${i + 1}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    movable: false,
-                    "rect.select": true,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${i + 1}号`, //座位号
-                  },
-                });
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle("follower.column.index", i - seatCount);
-                model.add(node);
-              }
-              seatCount += count;
-            });
-            console.log(seatCount);
-          }
-        },
-        sort2: () => {
-          console.log("sort2");
-          const model = this._model;
-          if (this._selectTarget && this._selectTarget instanceof b2.Group) {
-            console.log(this._selectTarget);
-            const group = this._selectTarget,
-              row = {
-                name: group.c("row.name"),
-                number: group.c("row.number"),
-              };
-            console.log(row);
-            const grids = this._selectTarget.getChildren();
-            let gridsArray = grids.toArray().sort((a, b) => {
-              return b.getCenterLocation().x - a.getCenterLocation().x;
-            });
-            let seats = [],
-              seatCount = 0;
-            gridsArray.forEach((grid, index) => {
-              // grid.setName(index + 1);
-              const count = grid.getStyle("grid.column.count");
-              for (let i = seatCount; i < seatCount + count; i++) {
-                const node = new b2.Follower({
-                  name: i + 1,
-                  // movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": i + 1,
-                    "column.name": `${i + 1}号`,
-                    "row.column.name": `${row.name}${i + 1}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${i + 1}号`, //座位号
-                  },
-                });
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle(
-                  "follower.column.index",
-                  count - 1 - i + seatCount
-                );
-                model.add(node);
-              }
-              seatCount += count;
-            });
-          }
-        },
-        sort3: () => {
-          console.log("sort3");
-          const model = this._model;
-          if (this._selectTarget && this._selectTarget instanceof b2.Group) {
-            console.log(this._selectTarget);
-            console.log(this._selectTarget);
-            const group = this._selectTarget,
-              row = {
-                name: group.c("row.name"),
-                number: group.c("row.number"),
-              };
-            console.log(row);
-            const grids = this._selectTarget.getChildren();
-            let gridsArray = grids.toArray().sort((a, b) => {
-              return a.getCenterLocation().x - b.getCenterLocation().x;
-            });
-            let seats = [],
-              seatCount = 0;
-            gridsArray.forEach((grid, index) => {
-              // grid.setName(index + 1);
-              const count = grid.getStyle("grid.column.count");
-              grid.startCount = seatCount;
-              seatCount += count;
-              grid.endCount = seatCount;
-            });
-            console.log(seatCount, gridsArray);
-            let half = 0;
-            if (seatCount % 2 === 0) {
-              // seatCount 是偶数
-              half = seatCount / 2;
-            } else {
-              half = (seatCount + 1) / 2;
-            }
-            let start = 0,
-              left = 2,
-              right = 3,
-              currentIndex = 0;
-            gridsArray.forEach((grid, index) => {
-              const startCount = grid.startCount,
-                endCount = grid.endCount;
-              if (half <= endCount && half >= startCount) {
-                currentIndex = index;
-                // grid.s('grid.fill.color', 'rgba(255,0,0,0.4)');
-                const count = grid.getStyle("grid.column.count");
-                const offset = half - startCount - 1;
-                const node = new b2.Follower({
-                  name: 1,
-                  // movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": 1,
-                    "column.name": `${1}号`,
-                    "row.column.name": `${row.name}${1}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${1}号`, //座位号
-                  },
-                });
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle("follower.column.index", offset);
-                model.add(node);
-                // sort left
-                for (let i = offset - 1; i >= 0; i--) {
-                  const node = new b2.Follower({
-                    name: left,
-                    movable: false,
-                    styles: {
-                      "body.type": "vector",
-                      "vector.shape": "roundrect",
-                      // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                      "vector.fill.color": "#E3E3E3",
-                      "vector.outline.width": 1,
-                      "vector.outline.color": "#000000",
-                      "vector.outline.pattern": [1, 1],
-                      "label.position": "center",
-                      "shadow.xoffset": 0,
-                      "shadow.yoffset": 0,
-                      "select.padding": 0,
-                    },
-                    clients: {
-                      "column.number": left,
-                      "column.name": `${left}号`,
-                      "row.column.name": `${row.name}${left}号`,
-                      "seat.stats": "未分配",
-                      "seat.price": 100,
-                      "business.region": "", // 区域
-                      "business.tier": "", // 层数
-                      "business.row": "", // 排号
-                      "business.seat": `${left}号`, //座位号
-                    },
-                  });
-                  left += 2;
-                  node.setLayerId("top");
-                  node.setHost(grid);
-                  node.setParent(grid);
-                  node.setStyle("follower.column.index", i);
-                  model.add(node);
-                }
-                // sort right
-                for (let i = offset + 1; i <= count - 1; i++) {
-                  const node = new b2.Follower({
-                    name: right,
-                    movable: false,
-                    styles: {
-                      "body.type": "vector",
-                      "vector.shape": "roundrect",
-                      // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                      "vector.fill.color": "#E3E3E3",
-                      "vector.outline.width": 1,
-                      "vector.outline.color": "#000000",
-                      "vector.outline.pattern": [1, 1],
-                      "label.position": "center",
-                      "shadow.xoffset": 0,
-                      "shadow.yoffset": 0,
-                      "select.padding": 0,
-                    },
-                    clients: {
-                      "column.number": right,
-                      "column.name": `${right}号`,
-                      "row.column.name": `${row.name}${right}号`,
-                      "seat.stats": "未分配",
-                      "seat.price": 100,
-                      "business.region": "", // 区域
-                      "business.tier": "", // 层数
-                      "business.row": "", // 排号
-                      "business.seat": `${right}号`, //座位号
-                    },
-                  });
-                  right += 2;
-                  node.setLayerId("top");
-                  node.setHost(grid);
-                  node.setParent(grid);
-                  node.setStyle("follower.column.index", i);
-                  model.add(node);
-                }
-              }
-            });
-            console.log(currentIndex);
-            for (let i = currentIndex - 1; i >= 0; i--) {
-              const grid = gridsArray[i];
-              const count = grid.getStyle("grid.column.count");
-              for (let j = count - 1; j >= 0; j--) {
-                const node = new b2.Follower({
-                  name: left,
-                  // movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": left,
-                    "column.name": `${left}号`,
-                    "row.column.name": `${row.name}${left}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${left}号`, //座位号
-                  },
-                });
-                left += 2;
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle("follower.column.index", j);
-                model.add(node);
-              }
-            }
-            for (let i = currentIndex + 1; i < gridsArray.length; i++) {
-              const grid = gridsArray[i];
-              const count = grid.getStyle("grid.column.count");
-              for (let j = 0; j < count; j++) {
-                const node = new b2.Follower({
-                  name: right,
-                  movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": right,
-                    "column.name": `${right}号`,
-                    "row.column.name": `${row.name}${right}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${right}号`, //座位号
-                  },
-                });
-                right += 2;
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle("follower.column.index", j);
-                model.add(node);
-              }
-            }
-          }
-        },
-        sort4: () => {
-          console.log("sort4");
-          alert("开发中！");
-        },
-        clear: () => {
-          console.log("清空座位");
-          const model = this._model;
-          if (this._selectTarget && this._selectTarget instanceof b2.Group) {
-            const grids = this._selectTarget.getChildren();
-            grids.toArray().forEach((grid) => {
-              const child = grid.getChildren();
-              child.toArray().forEach((c) => {
-                model.remove(c);
-              });
-            });
-          }
-        },
-      },
-    };
-
-    let toolbarFolder = gui.addFolder("File");
-    toolbarFolder.add(options.toolbar, "new").name("新建场景");
-    toolbarFolder.add(options.toolbar, "clear").name("清空场景");
-    toolbarFolder.add(options.toolbar, "save").name("保存数据");
-    toolbarFolder.add(options.toolbar, "load").name("导入数据");
-    toolbarFolder.add(options.toolbar, "delete").name("删除数据");
-    toolbarFolder
-      .add(options.toolbar, "lock")
-      .name("锁定场景")
-      .onChange((v) => {
-        this._lock = v;
-      });
-    toolbarFolder.add(options.toolbar, "zoomoverview").name("充满画布");
-    toolbarFolder.add(options.toolbar, "undo").name("Undo");
-    toolbarFolder.add(options.toolbar, "redo").name("Redo");
-    toolbarFolder.close();
-
-    let drawFolder = gui.addFolder("Draw");
-    drawFolder.add(options.draw, "default").name("默认交互");
-    drawFolder.add(options.draw, "edit").name("编辑模式");
-    drawFolder.add(options.draw, "drawText").name("绘制文字");
-    drawFolder.add(options.draw, "drawRect").name("绘制矩形");
-    drawFolder.add(options.draw, "drawCircle").name("绘制圆形");
-    drawFolder.add(options.draw, "drawShape").name("绘制多边形");
-    drawFolder.add(options.draw, "drawCurve").name("绘制弧线");
-    drawFolder.add(options.draw, "drawGrid").name("编排虚拟座位");
-    drawFolder.close();
-
-    let alignFolder = gui.addFolder("Align");
-    alignFolder.add(options.align, "top").name("上对齐");
-    alignFolder.add(options.align, "bottom").name("下对齐");
-    alignFolder.add(options.align, "left").name("左对齐");
-    alignFolder.add(options.align, "right").name("右对齐");
-    alignFolder.add(options.align, "horizontalcenter").name("水平居中");
-    alignFolder.add(options.align, "verticalcenter").name("垂直居中");
-    alignFolder.close();
-
-    let operationFolder = gui.addFolder("Operation");
-    operationFolder.add(options.operation, "group").name("分组");
-    operationFolder.add(options.operation, "ungroup").name("解除分组");
-
-    operationFolder.add(options.operation, "mirrorX").name("水平镜像");
-    operationFolder.add(options.operation, "mirrorY").name("垂直镜像");
-    operationFolder.close();
-
-    let businessFolder = gui.addFolder("Business");
-    businessFolder.add(options.business, "sort1").name("向右顺序编号");
-    businessFolder.add(options.business, "sort2").name("向左顺序编号");
-    businessFolder.add(options.business, "sort3").name("单双号编号1");
-    businessFolder.add(options.business, "sort4").name("单双号编号2");
-    businessFolder.add(options.business, "clear").name("清除编号");
-    businessFolder.close();
-    let colorPriceFolder = gui.addFolder("票价配色");
-    for (let key in this._colorMap) {
-      console.log(key + "---" + this._colorMap[key]);
-      colorPriceFolder.addColor(this._colorMap, key).name(`￥${key}`);
-    }
-    colorPriceFolder.close();
-  }
+  _initGUI() {}
 
   /**
    * init Property GUI
@@ -1470,15 +835,17 @@ export default class Application {
     };
 
     if (!target) return;
-    console.log(config);
     if (target instanceof b2.Follower) {
       if (this._guiproperty) {
         this._guiproperty.destroy();
       }
-      this._guiproperty = new GUI({ autoPlace: true, width: 220 });
+      this._guiproperty = new GUI({
+        autoPlace: true,
+        width: 220,
+      });
       this._guiproperty.domElement.style.position = "absolute";
-      this._guiproperty.domElement.style.left = "0px";
-      this._guiproperty.domElement.style.top = "0px";
+      this._guiproperty.domElement.style.right = "2px";
+      this._guiproperty.domElement.style.top = "2px";
 
       let propertyFolder = this._guiproperty.addFolder("Property");
       if (config.property) {

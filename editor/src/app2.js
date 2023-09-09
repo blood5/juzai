@@ -1,4 +1,3 @@
-import { Pane } from "tweakpane";
 import { GUI } from "dat.gui";
 import { testdatas } from "./datas";
 import {
@@ -13,11 +12,10 @@ import {
 
 export default class Application {
   constructor(canvas) {
-    this._initPane();
-    // this._viewer = new b2.Viewer();
-    // this._model = this._viewer.getModel();
-    // this._selectionModel = this._model.getSelectionModel();
-    // this._initGUI();
+    this._viewer = new b2.Viewer();
+    this._model = this._viewer.getModel();
+    this._selectionModel = this._model.getSelectionModel();
+    this._initGUI();
 
     return;
     this._undoManager = this._model.getUndoManager();
@@ -70,22 +68,6 @@ export default class Application {
     // this.loadTest();
   }
 
-  _initPane() {
-    const pane = (this._pane = new Pane({
-      title: "菜单",
-      expanded: false,
-    }));
-
-    const PARAMS = {
-      factor: 123,
-      title: "hello",
-      color: "#ff0055",
-    };
-
-    pane.addBinding(PARAMS, "factor");
-    pane.addBinding(PARAMS, "title");
-    pane.addBinding(PARAMS, "color");
-  }
   /**
    *init viewer
    */

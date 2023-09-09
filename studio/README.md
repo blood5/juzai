@@ -1,11 +1,11 @@
 # how to run
-`npm install`
+`yarn`
 
-`npm run start`
+`yarn start`
 
 # how to build
 
-`npm run build`
+`yarn build`
 
 
 
