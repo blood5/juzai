@@ -16,13 +16,11 @@ export default class Scene {
     document.body.appendChild(view);
 
     viewer.setScrollBarVisible(false);
-
     viewer.setEditLineColor("#000000");
     viewer.setEditLineWidth(2);
     viewer.setResizePointFillColor("green");
     viewer.setToolTipEnabled(false);
     viewer.setDragToPan(false);
-    viewer.setRectSelectEnabled(true);
     viewer.setZoomDivVisible(false);
     viewer.setTransparentSelectionEnable(false);
     viewer.setRectSelectEnabled(true);
@@ -114,16 +112,14 @@ export default class Scene {
       const app = this._app,
         menu = app._menu,
         property = app.property;
-
-      console.log(e.kind);
-      console.log(menu);
-      console.log(property);
+      console.log(e);
       if (e.kind === "clickElement") {
         this._selectTarget = e.element;
         this._lastData = this._selectionModel.getLastData();
         this._lastPoint = viewer.getLogicalPoint(e.event);
-        // this._initPropertyGUI();
+        property.element = e.element;
       } else if (e.kind === "clickBackground") {
+        property.element = e.element;
       }
     });
 

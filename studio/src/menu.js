@@ -1,4 +1,5 @@
 import { GUI } from "dat.gui";
+import Swal from "sweetalert2";
 import {
   align,
   insertStyle,
@@ -8,12 +9,14 @@ import {
   registerImage,
   saveJSON,
 } from "./util";
+import Table from "./table";
 
 export default class Menu {
   constructor(app) {
     this._app = app;
     this._gui = undefined;
     this.init();
+    const table = (this._table = new Table(app));
   }
 
   init() {
@@ -30,7 +33,6 @@ export default class Menu {
     console.log(app._model);
     console.log(app._model.getSelectionModel());
     const sm = app._model.getSelectionModel();
-    console.log(sm);
 
     insertStyle(`
           .dg .c {
@@ -86,6 +88,13 @@ export default class Menu {
       draw: {
         default: () => {
           app.scene.viewer.setDefaultInteractions();
+          app.scene.viewer.setRectSelectEnabled(false);
+          app.scene.viewer.setDragToPan(true);
+        },
+        rectselect: () => {
+          app.scene.viewer.setDefaultInteractions();
+          app.scene.viewer.setDragToPan(false);
+          app.scene.viewer.setRectSelectEnabled(true);
         },
         edit: () => {
           app.scene.viewer.setEditInteractions();
@@ -114,6 +123,22 @@ export default class Menu {
           console.log("编排虚拟座位");
           app.drawGrid();
         },
+        createSeat: async () => {
+          console.log("开始创建座位");
+          const { value: rows } = await Swal.fire({
+            title: "请输入需要创建座位行数",
+            input: "text",
+            inputLabel: "请输入需要创建座位行数",
+            inputPlaceholder: "请输入需要创建座位行数",
+          });
+
+          if (rows > 100) {
+            Swal.fire(`行数太多，建议分批创建!`);
+          } else {
+            console.log(`创建${rows}行座位`);
+            this._table.rows = rows;
+          }
+        },
       },
       align: {
         top: () => {
@@ -137,10 +162,10 @@ export default class Menu {
       },
       operation: {
         group: () => {
-          app._group();
+          app.group();
         },
-        ungroup: () => {
-          app._ungroup();
+        unGroup: () => {
+          app.unGroup();
         },
         mirrorX: () => {
           app._mirrorX();
@@ -151,68 +176,7 @@ export default class Menu {
       },
       business: {
         sort1: () => {
-          console.log("sort1");
-          const model = app._model;
-          if (app._selectTarget && app._selectTarget instanceof b2.Group) {
-            console.log(app._selectTarget);
-            const group = app._selectTarget,
-              row = {
-                name: group.c("row.name"),
-                number: group.c("row.number"),
-              };
-            console.log(row);
-
-            const grids = app._selectTarget.getChildren();
-            let gridsArray = grids.toArray().sort((a, b) => {
-              return a.getCenterLocation().x - b.getCenterLocation().x;
-            });
-            console.log(grids);
-            let seats = [],
-              seatCount = 0;
-            gridsArray.forEach((grid, index) => {
-              // grid.setName(index + 1);
-              const count = grid.getStyle("grid.column.count");
-              for (let i = seatCount; i < seatCount + count; i++) {
-                const node = new b2.Follower({
-                  name: i + 1,
-                  movable: false,
-                  styles: {
-                    "body.type": "vector",
-                    "vector.shape": "roundrect",
-                    // 'vector.fill.color': 'rgba(255,255,255,0.4)',
-                    "vector.fill.color": "#E3E3E3",
-                    "vector.outline.width": 1,
-                    "vector.outline.color": "#000000",
-                    "vector.outline.pattern": [1, 1],
-                    "label.position": "center",
-                    "shadow.xoffset": 0,
-                    "shadow.yoffset": 0,
-                    "select.padding": 0,
-                  },
-                  clients: {
-                    "column.number": i + 1,
-                    "column.name": `${i + 1}号`,
-                    "row.column.name": `${row.name}${i + 1}号`,
-                    "seat.stats": "未分配",
-                    "seat.price": 100,
-                    movable: false,
-                    "rect.select": true,
-                    "business.region": "", // 区域
-                    "business.tier": "", // 层数
-                    "business.row": "", // 排号
-                    "business.seat": `${i + 1}号`, //座位号
-                  },
-                });
-                node.setLayerId("top");
-                node.setHost(grid);
-                node.setParent(grid);
-                node.setStyle("follower.column.index", i - seatCount);
-                model.add(node);
-              }
-              seatCount += count;
-            });
-            console.log(seatCount);
-          }
+          
         },
         sort2: () => {
           console.log("sort2");
@@ -548,11 +512,14 @@ export default class Menu {
     toolbarFolder.add(options.toolbar, "zoomoverview").name("充满画布");
     toolbarFolder.add(options.toolbar, "undo").name("Undo");
     toolbarFolder.add(options.toolbar, "redo").name("Redo");
-    toolbarFolder.close();
+    toolbarFolder.open();
 
     let drawFolder = gui.addFolder("Draw");
-    // drawFolder.add(options.draw, "default").name("默认交互");
-    // drawFolder.add(options.draw, "edit").name("编辑模式");
+
+    drawFolder.add(options.draw, "default").name("默认交互");
+    drawFolder.add(options.draw, "rectselect").name("框选模式");
+    drawFolder.add(options.draw, "edit").name("编辑模式");
+    drawFolder.add(options.draw, "createSeat").name("创建座位");
     drawFolder.add(options.draw, "drawText").name("绘制文字");
     drawFolder.add(options.draw, "drawRect").name("绘制矩形");
     drawFolder.add(options.draw, "drawCircle").name("绘制圆形");
@@ -572,24 +539,23 @@ export default class Menu {
 
     let operationFolder = gui.addFolder("Operation");
     operationFolder.add(options.operation, "group").name("分组");
-    operationFolder.add(options.operation, "ungroup").name("解除分组");
-
-    operationFolder.add(options.operation, "mirrorX").name("水平镜像");
-    operationFolder.add(options.operation, "mirrorY").name("垂直镜像");
+    operationFolder.add(options.operation, "unGroup").name("解除分组");
+    // operationFolder.add(options.operation, "mirrorX").name("水平镜像");
+    // operationFolder.add(options.operation, "mirrorY").name("垂直镜像");
     operationFolder.close();
 
-    let businessFolder = gui.addFolder("Business");
-    businessFolder.add(options.business, "sort1").name("向右顺序编号");
-    businessFolder.add(options.business, "sort2").name("向左顺序编号");
-    businessFolder.add(options.business, "sort3").name("单双号编号1");
-    businessFolder.add(options.business, "sort4").name("单双号编号2");
-    businessFolder.add(options.business, "clear").name("清除编号");
-    businessFolder.close();
-    let colorPriceFolder = gui.addFolder("票价配色");
-    for (let key in app._colorMap) {
-      console.log(key + "---" + app._colorMap[key]);
-      colorPriceFolder.addColor(app._colorMap, key).name(`￥${key}`);
-    }
-    colorPriceFolder.close();
+    // let businessFolder = gui.addFolder("Business");
+    // businessFolder.add(options.business, "sort1").name("向右顺序编号");
+    // businessFolder.add(options.business, "sort2").name("向左顺序编号");
+    // businessFolder.add(options.business, "sort3").name("单双号编号1");
+    // businessFolder.add(options.business, "sort4").name("单双号编号2");
+    // businessFolder.add(options.business, "clear").name("清除编号");
+    // businessFolder.close();
+    // let colorPriceFolder = gui.addFolder("票价配色");
+    // for (let key in app._colorMap) {
+    //   console.log(key + "---" + app._colorMap[key]);
+    //   colorPriceFolder.addColor(app._colorMap, key).name(`￥${key}`);
+    // }
+    // colorPriceFolder.close();
   }
 }

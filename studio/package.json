@@ -10,7 +10,9 @@
         "build:test": "parcel build test.html --public-url ./ --out-dir docs"
     },
     "dependencies": {
+        "gl-matrix": "^3.4.3",
         "parcel-bundler": "^1.6.1",
+        "sweetalert2": "^11.7.27",
         "tweakpane": "^4.0.1"
     },
     "devDependencies": {

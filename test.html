@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>弹窗示例</title>
+    <style>
+      .modal {
+        width: 500px;
+        height: 300px;
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+      }
+
+      .left-panel {
+        flex: 1;
+        padding: 10px;
+        background-color: #fff;
+        overflow-y: auto;
+      }
+
+      .right-panel {
+        flex: 1;
+        padding: 10px;
+        background-color: #fff;
+      }
+
+      .form-group {
+        margin-bottom: 10px;
+      }
+
+      .btn-container {
+        text-align: center;
+        padding: 10px;
+      }
+    </style>
+    <script>
+      function openModal() {
+        // 创建弹窗容器
+        var modal = document.createElement('div');
+        modal.className = 'modal';
+
+        // 创建左侧列表
+        var leftPanel = document.createElement('div');
+        leftPanel.className = 'left-panel';
+        // 添加列表内容
+        var listItems = ['Item 1', 'Item 2', 'Item 3'];
+        for (var i = 0; i < listItems.length; i++) {
+          var listItem = document.createElement('div');
+          listItem.innerText = listItems[i];
+          leftPanel.appendChild(listItem);
+        }
+
+        // 创建右侧录入表单
+        var rightPanel = document.createElement('div');
+        rightPanel.className = 'right-panel';
+        // 添加表单元素
+        var formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        var label = document.createElement('label');
+        label.innerText = '输入内容：';
+        var input = document.createElement('input');
+        formGroup.appendChild(label);
+        formGroup.appendChild(input);
+        rightPanel.appendChild(formGroup);
+
+        // 创建确认按钮
+        var btnContainer = document.createElement('div');
+        btnContainer.className = 'btn-container';
+        var confirmBtn = document.createElement('button');
+        confirmBtn.innerText = '确认';
+        confirmBtn.addEventListener('click', function () {
+          // 处理确认按钮点击事件
+          var inputValue = input.value;
+          alert('您输入的内容是：' + inputValue);
+          closeModal();
+        });
+        btnContainer.appendChild(confirmBtn);
+
+        // 将左侧列表、右侧录入和确认按钮添加到弹窗容器中
+        modal.appendChild(leftPanel);
+        modal.appendChild(rightPanel);
+        modal.appendChild(btnContainer);
+
+        // 将弹窗容器添加到页面中
+        document.body.appendChild(modal);
+      }
+
+      function closeModal() {
+        var modal = document.querySelector('.modal');
+        if (modal) {
+          modal.remove();
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <button onclick="openModal()">打开弹窗</button>
+  </body>
+</html>

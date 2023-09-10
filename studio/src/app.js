@@ -1,8 +1,10 @@
 import { GUI } from "dat.gui";
+import Swal from "sweetalert2";
 import { testdatas } from "./datas";
 import Menu from "./menu";
 import Property from "./property";
 import Scene from "./scene";
+import { vec2 } from "gl-matrix";
 
 import {
   align,
@@ -28,6 +30,7 @@ export default class Application {
     this._property = new Property(this);
     // this._selectTarget = null;
     this._initEvent();
+    this._initPopupMenu();
     // // this._registerImages();
     // this._lastData = null;
     // this._lastPoint = null;
@@ -64,7 +67,7 @@ export default class Application {
     //   980: "#713DEE",
     //   1080: "#F536E8",
     // };
-    this.loadTest();
+    // this.loadTest();
   }
 
   get menu() {
@@ -169,14 +172,20 @@ export default class Application {
           this._undoManager.undo();
         } else if (e.key === "y") {
           this._undoManager.redo();
+        } else if (e.key === "g") {
+          this.group();
+        } else if (isShiftDown(e) && e.key === "G") {
+          this.unGroup();
         }
       }
       if (isShiftDown(e)) {
         this._shiftDown = true;
       }
-      if (e.key === "Backspace") {
-        this.model.removeSelection();
-      }
+      // if (e.key === "Backspace" || e.key === 'Delete') {
+      //  const view =  this.scene.viewer.getView();
+      //  console.log(view);
+      //   // this.model.removeSelection();
+      // }
     });
 
     document.addEventListener("keyup", (e) => {
@@ -184,6 +193,300 @@ export default class Application {
     });
   }
 
+  _initPopupMenu() {
+    const app = this,
+      viewer = this._scene.viewer,
+      model = this._model,
+      sm = this._sm;
+
+    var lastData, lastPoint;
+    const popupMenu = new b2.controls.PopupMenu(viewer);
+    popupMenu.onMenuShowing = function (e) {
+      lastData = viewer.getSelectionModel().getLastData();
+      lastPoint = viewer.getLogicalPoint(e);
+      return true;
+    };
+    popupMenu.onAction = async (menuItem) => {
+      switch (menuItem.label) {
+        case "新增":
+          const node = new b2.Follower({
+            name: "空位置",
+            size: { width: 20, height: 20 },
+            styles: {
+              "body.type": "vector",
+              "vector.shape": "circle",
+              "vector.fill.color": "rgba(255,255,255,0.4)",
+              "vector.outline.width": 1,
+              "vector.outline.color": "#000000",
+              "vector.outline.pattern": [10, 0],
+              "label.position": "center",
+              "label.font": "10",
+              "shadow.xoffset": 0,
+              "shadow.yoffset": 0,
+              "select.padding": 0,
+            },
+          });
+          node.setCenterLocation(lastPoint);
+          model.add(node);
+          break;
+        case "删除":
+          model.removeSelection();
+          break;
+        case "清空":
+          app?.clear();
+          break;
+        case "全选":
+          sm.selectAll();
+          break;
+        case "分组":
+          app.group();
+          break;
+        case "解散分组":
+          app.unGroup();
+          break;
+        case "旋转分组":
+          const { value: angle } = await Swal.fire({
+            title: "请输入旋转角度",
+            icon: "question",
+            input: "range",
+            inputLabel: "角度",
+            inputAttributes: {
+              min: -180,
+              max: +180,
+              step: 1,
+            },
+            inputValue: 0,
+          });
+          app.rotateGroup(angle);
+          break;
+        case "左右编号":
+          console.log("左右编号");
+          app.sortLeftRight();
+          break;
+        case "右左编号":
+          console.log("右左编号");
+          app.sortRightLeft();
+          break;
+        case "左单右双编号":
+          console.log("左单右双编号");
+          app.sortLeftSingleRightDouble();
+          break;
+        case "左双右单编号":
+          console.log("左双右单编号");
+          app.sortLeftDoubleRightSingle();
+          break;
+      }
+
+      return;
+      if (
+        menuItem.label === "Expand Group" ||
+        menuItem.label === "Collapse Group"
+      ) {
+        lastData.reverseExpanded();
+      }
+      if (menuItem.label === "Enter SubNetwork") {
+        viewer.setCurrentSubNetwork(lastData);
+      }
+      if (menuItem.label === "Up SubNetwork") {
+        viewer.upSubNetwork();
+      }
+      if (
+        menuItem.label === "Expand LinkBundle" ||
+        menuItem.label === "Collapse LinkBundle"
+      ) {
+        lastData.reverseBundleExpanded();
+      }
+      if (menuItem.label === "Critical") {
+        lastData.getAlarmState().increaseNewAlarm(b2.AlarmSeverity.CRITICAL, 1);
+      }
+      if (menuItem.label === "Major") {
+        lastData.getAlarmState().increaseNewAlarm(b2.AlarmSeverity.MAJOR, 1);
+      }
+      if (menuItem.label === "Minor") {
+        lastData.getAlarmState().increaseNewAlarm(b2.AlarmSeverity.MINOR, 1);
+      }
+      if (menuItem.label === "Warning") {
+        lastData.getAlarmState().increaseNewAlarm(b2.AlarmSeverity.WARNING, 1);
+      }
+      if (menuItem.label === "Indeterminate") {
+        lastData
+          .getAlarmState()
+          .increaseNewAlarm(b2.AlarmSeverity.INDETERMINATE, 1);
+      }
+      if (menuItem.label === "Clear Alarm") {
+      }
+    };
+    popupMenu.isVisible = function (menuItem) {
+      if (lastData) {
+        switch (menuItem.group) {
+          case "Group":
+            return lastData instanceof b2.Group;
+            break;
+          case "Link":
+            return lastData instanceof b2.Link;
+            break;
+          default:
+            return menuItem.group === "Element";
+        }
+      } else {
+        return menuItem.group === "none";
+      }
+    };
+    /*
+     * {id, type, icon, label, visible, enabled, separator, action, items, selected, groupName}
+     */
+    popupMenu.isEnabled = function (menuItem) {
+      if (lastData) {
+        if (lastData instanceof b2.Group) {
+          if (menuItem.group === "Group") {
+            var expanded = lastData.isExpanded();
+            return menuItem.expand ? !expanded : expanded;
+          } else {
+            return false;
+          }
+        }
+      } else {
+        if (menuItem.label === "清空") {
+          return app.model.size() > 0;
+        }
+        if (menuItem.label === "全选") {
+          return app.model.size() > 0;
+        }
+      }
+      return true;
+    };
+    popupMenu.setMenuItems([
+      {
+        label: "新增",
+        group: "none",
+      },
+      {
+        label: "全选",
+        group: "none",
+      },
+      {
+        label: "清空",
+        group: "none",
+      },
+      {
+        label: "删除",
+        group: "Element",
+      },
+      {
+        label: "分组",
+        group: "Element",
+      },
+
+      {
+        label: "座位编号",
+        group: "Element",
+        groupName: "Element",
+        items: [
+          // {
+          //   label: "Critical",
+          //   group: "Element",
+          //   items: [
+          //     {
+          //       label: "Critical2",
+          //       group: "Element",
+          //     },
+          //     {
+          //       label: "Major2",
+          //       group: "Element",
+          //     },
+          //     {
+          //       label: "Minor2",
+          //       group: "Element",
+          //     },
+          //     {
+          //       label: "Warning2",
+          //       group: "Element",
+          //     },
+          //     {
+          //       label: "Indeterminate2",
+          //       group: "Element",
+          //     },
+          //   ],
+          // },
+          {
+            label: "左右编号",
+            group: "Element",
+          },
+          {
+            label: "右左编号",
+            group: "Element",
+          },
+          {
+            label: "左单右双编号",
+            group: "Element",
+          },
+          {
+            label: "左双右单编号",
+            group: "Element",
+          },
+        ],
+      },
+      {
+        separator: true,
+        group: "Element",
+      },
+      {
+        label: "旋转分组",
+        group: "Group",
+      },
+      {
+        label: "解散分组",
+        group: "Group",
+      },
+      // { label: 'Shape', group: 'Magnify', items: [
+      // { label: 'rectangle', type: 'radio', groupName: 'Shape', group: 'Magnify', action: function () {
+      //     magnifyInteraction.setShape('rectangle');
+      //     magnifyInteraction.setYRadius(magnifyInteraction.getXRadius());
+      // } },
+      // { label: 'roundrect', type: 'radio', groupName: 'Shape', group: 'Magnify', action: function () {
+      //     magnifyInteraction.setShape('roundrect');
+      //     magnifyInteraction.setYRadius(magnifyInteraction.getXRadius());
+      // } },
+      // { label: 'oval', type: 'radio', groupName: 'Shape', group: 'Magnify', action: function () {
+      //     magnifyInteraction.setShape('oval');
+      //     magnifyInteraction.setYRadius(magnifyInteraction.getXRadius() * 0.75);
+      // } },
+      // { label: 'round', type: 'radio', groupName: 'Shape', selected: true, group: 'Magnify', action: function () {
+      //     magnifyInteraction.setShape('round');
+      //     magnifyInteraction.setYRadius(magnifyInteraction.getXRadius());
+      // } },
+      // { label: 'star', type: 'radio', groupName: 'Shape', group: 'Magnify', action: function () {
+      //     magnifyInteraction.setShape('star');
+      //     magnifyInteraction.setYRadius(magnifyInteraction.getXRadius());
+      // } },
+      // ] },
+      // { label: 'Zoom', group: 'Magnify', items: [
+      // { label: 2, type: 'radio', groupName: 'Zoom', selected: true, group: 'Magnify', action: function () { magnifyInteraction.setZoom(2); } },
+      // { label: 3, type: 'radio', groupName: 'Zoom', group: 'Magnify', action: function () { magnifyInteraction.setZoom(3); } },
+      // { label: 4, type: 'radio', groupName: 'Zoom', group: 'Magnify', action: function () { magnifyInteraction.setZoom(4); } }
+      // ] },
+      // { label: 'Size', group: 'Magnify', items: [
+      // { label: 50, type: 'radio', groupName: 'Size', group: 'Magnify', action: function () { magnifyInteraction.setXRadius(50); magnifyInteraction.setYRadius(50); } },
+      // { label: 100, type: 'radio', groupName: 'Size', selected: true, group: 'Magnify', action: function () { magnifyInteraction.setXRadius(100); magnifyInteraction.setYRadius(100); } },
+      // { label: 200, type: 'radio', groupName: 'Size', group: 'Magnify', action: function () { magnifyInteraction.setXRadius(200); magnifyInteraction.setYRadius(200); } }
+      // ] },
+      // { label: 'BorderWidth', group: 'Magnify', items: [
+      // { label: '1', type: 'radio', groupName: 'BorderWidth', selected: true, group: 'Magnify', action: function () { magnifyInteraction.setBorderWidth(1); } },
+      // { label: '2', type: 'radio', groupName: 'BorderWidth', group: 'Magnify', action: function () { magnifyInteraction.setBorderWidth(2); } },
+      // { label: '3', type: 'radio', groupName: 'BorderWidth', group: 'Magnify', action: function () { magnifyInteraction.setBorderWidth(3); } }
+      // ] },
+      // { label: 'BorderColor', group: 'Magnify', items: [
+      // { label: 'black', type: 'radio', groupName: 'BorderColor', selected: true, group: 'Magnify', action: function () { magnifyInteraction.setBorderColor('black'); } },
+      // { label: 'green', type: 'radio', groupName: 'BorderColor', group: 'Magnify', action: function () { magnifyInteraction.setBorderColor('green'); } },
+      // { label: 'blue', type: 'radio', groupName: 'BorderColor', group: 'Magnify', action: function () { magnifyInteraction.setBorderColor('blue'); } }
+      // ] },
+      // { label: 'BackgroundColor', group: 'Magnify', items: [
+      // { label: 'white', type: 'radio', groupName: 'BackgroundColor', selected: true, group: 'Magnify', action: function () { magnifyInteraction.setBackgroundColor('white'); } },
+      // { label: 'transparent', type: 'radio', groupName: 'BackgroundColor', group: 'Magnify', action: function () { magnifyInteraction.setBackgroundColor('transparent'); } },
+      // { label: 'black', type: 'radio', groupName: 'BackgroundColor', group: 'Magnify', action: function () { magnifyInteraction.setBackgroundColor('black'); } }
+      // ] }
+    ]);
+  }
   /**
    *copy selection
    */
@@ -621,60 +924,129 @@ export default class Application {
     align(nodes, type);
   }
 
-  _group() {
-    if (this._model.getSelectionModel().size() == 0) {
-      alert("No Selection");
-    } else {
-      const group = new b2.Group({
-        name: "分组",
-        styles: {
-          "group.fill": false,
-          "group.fill.color": "#FFFFFF",
-          "group.shape": "roundrect",
-          "group.outline.width": 2,
-          "group.outline.color": "#000000",
-          "group.padding": 0,
-          "vector.outline.pattern": [2, 2],
-          "shadow.xoffset": 0,
-          "shadow.yoffset": 0,
-          "label.position": "left.left",
-        },
-        clients: {
-          selectable: true,
-          movable: true,
-        },
-      });
-      group.setLayerId("center");
-      group.setExpanded(true);
-      this._model.add(group);
-      this._model
-        .getSelectionModel()
-        .getSelection()
-        .forEach((element) => {
-          if (element instanceof b2.Follower) {
-            group.addChild(element);
-          }
-        });
+  group() {
+    const app = this,
+      model = this._model,
+      sm = this._sm;
+    // if (this._model.getSelectionModel().size() == 0) {
+    //   alert("No Selection");
+    // } else {
+    //   const group = new b2.Group({
+    //     name: "分组",
+    //     styles: {
+    //       "group.fill": false,
+    //       "group.fill.color": "#FFFFFF",
+    //       "group.shape": "roundrect",
+    //       "group.outline.width": 2,
+    //       "group.outline.color": "#000000",
+    //       "group.padding": 0,
+    //       "vector.outline.pattern": [2, 2],
+    //       "shadow.xoffset": 0,
+    //       "shadow.yoffset": 0,
+    //       "label.position": "left.left",
+    //     },
+    //     clients: {
+    //       selectable: true,
+    //       movable: true,
+    //     },
+    //   });
+    //   group.setLayerId("center");
+    //   group.setExpanded(true);
+    //   this._model.add(group);
+    //   this._model
+    //     .getSelectionModel()
+    //     .getSelection()
+    //     .forEach((element) => {
+    //       if (element instanceof b2.Follower) {
+    //         group.addChild(element);
+    //       }
+    //     });
 
-      this._groups.push(group);
-      group.c("row.number", this._groups.length);
-      group.c("row.name", `${this._groups.length}排`);
-    }
+    //   this._groups.push(group);
+    //   group.c("row.number", this._groups.length);
+    //   group.c("row.name", `${this._groups.length}排`);
+    // }
+
+    const selection = sm.getSelection();
+    const group = new b2.Group({
+      name: "分组",
+      styles: {
+        "group.fill": false,
+        "group.fill.color": "#FFFFFF",
+        "group.shape": "roundrect",
+        "group.outline.width": 2,
+        "group.outline.color": "#000000",
+        "group.padding": 2,
+        "vector.outline.pattern": [2, 2],
+        "label.position": "left.left",
+        "shadow.xoffset": 0,
+        "shadow.yoffset": 0,
+      },
+      clients: {
+        selectable: true,
+        movable: true,
+      },
+    });
+    group.setLayerId("center");
+    group.setExpanded(true);
+    model.add(group);
+    selection.forEach((element) => {
+      if (element instanceof b2.Follower) {
+        group.addChild(element);
+      }
+    });
   }
 
   /**
-   * ungroup
+   * unGroup
    */
-  _ungroup() {
-    if (this._selectTarget instanceof b2.Group) {
-      console.log(this._selectTarget);
-      this._selectTarget
+  unGroup() {
+    console.log(this._selectTarget);
+    const app = this,
+      model = this._model,
+      sm = this._sm;
+    const lastData = sm.getLastData();
+    console.log(lastData);
+    if (lastData instanceof b2.Group) {
+      lastData
         .getChildren()
         .toArray()
         .forEach((child) => {
-          this._selectTarget.removeChild(child);
+          lastData.removeChild(child);
         });
-      this._model.remove(this._selectTarget);
+      this._model.remove(lastData);
+    }
+  }
+
+  rotateGroup(angle) {
+    const app = this,
+      model = this._model,
+      viewer = this._scene.viewer,
+      sm = this._sm;
+    const selected = sm.getLastData();
+    console.log(selected);
+    const children = selected.getChildren();
+    let vx = vec2.fromValues(1, 0);
+    if (selected && selected instanceof b2.Group) {
+      const group = selected;
+      const nodes = group.getChildren();
+      let nodesArray = nodes.toArray().sort((a, b) => {
+        return a.getCenterLocation().x - b.getCenterLocation().x;
+      });
+      const firstNode = nodesArray[0];
+      const center = firstNode.getCenterLocation();
+      const vcenter = vec2.fromValues(center.x, center.y);
+
+      for (let i = 1; i < nodesArray.length; i++) {
+        const n = nodesArray[i];
+        const c = n.getCenterLocation();  
+        const vc = vec2.fromValues(c.x, c.y);
+        const vn = vec2.fromValues(c.x - center.x, c.y - center.y);
+        const vr = vec2.create();
+        vec2.rotate(vr, vc, vcenter, (angle * Math.PI) / 180);
+        console.log(vr);
+        n.setCenterLocation(vr[0], vr[1]);
+      }
     }
   }
 
@@ -1207,5 +1579,169 @@ export default class Application {
     registerImage(select, () => {
       this._viewer.invalidateElementUIs();
     });
+  }
+
+  /**
+   * 根据配置创建座位
+   * @param {*} config
+   */
+  createSeat(config) {
+    const model = this._model;
+    console.log(config);
+    for (let k in config) {
+      const v = config[k];
+      for (let i = 0; i < v; i++) {
+        const node = new b2.Follower({
+          id: `${k}-${i}`,
+          name: `${k}-${i}`,
+          size: { width: 20, height: 20 },
+          styles: {
+            "body.type": "vector",
+            "vector.shape": "circle",
+            "vector.fill.color": "rgba(255,255,255,0.4)",
+            "vector.outline.width": 1,
+            "vector.outline.color": "#000000",
+            "vector.outline.pattern": [10, 0],
+            "label.position": "center",
+            "label.font": "10",
+            "shadow.xoffset": 0,
+            "shadow.yoffset": 0,
+            "select.padding": 0,
+          },
+          location: {
+            x: 200 + i * 40,
+            y: 200 + k * 40,
+          },
+        });
+        model.add(node);
+      }
+    }
+  }
+
+  /**
+   * 左右编号 。如：10, 11, 12, 13, 14, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+   */
+  sortLeftRight() {
+    const app = this,
+      model = this._model,
+      viewer = this._scene.viewer,
+      sm = this._sm;
+    const selected = sm.getLastData();
+    if (selected && selected instanceof b2.Follower) {
+      const group = selected.getParent();
+      const nodes = group.getChildren();
+      let nodesArray = nodes.toArray().sort((a, b) => {
+        return a.getCenterLocation().x - b.getCenterLocation().x;
+      });
+      let currentIndex = 0;
+      nodesArray.forEach((node, index) => {
+        if (node.getId() === selected.getId()) {
+          currentIndex = index;
+          return;
+        }
+      });
+      nodesArray.forEach((node, index) => {
+        const name2 =
+          index >= currentIndex
+            ? index - currentIndex
+            : nodesArray.length - currentIndex + index;
+        node.setName2(`${name2}`);
+      });
+    }
+  }
+
+  /**
+   * 右左编号, 如：9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 14, 13, 12, 11, 10
+   */
+  sortRightLeft() {
+    const app = this,
+      model = this._model,
+      viewer = this._scene.viewer,
+      sm = this._sm;
+    const selected = sm.getLastData();
+    if (selected && selected instanceof b2.Follower) {
+      const group = selected.getParent();
+      const nodes = group.getChildren();
+      let nodesArray = nodes.toArray().sort((a, b) => {
+        return a.getCenterLocation().x - b.getCenterLocation().x;
+      });
+      let currentIndex = 0;
+      nodesArray.forEach((node, index) => {
+        if (node.getId() === selected.getId()) {
+          currentIndex = index;
+          return;
+        }
+      });
+      nodesArray.forEach((node, index) => {
+        const name2 =
+          index > currentIndex
+            ? nodesArray.length - index + currentIndex
+            : currentIndex - index;
+        node.setName2(`${name2}`);
+      });
+    }
+  }
+  /**
+   * 左单右双编号， 如： 9, 7, 5, 3, 1, 0 2 4 6 8 10 12 14
+   */
+  sortLeftSingleRightDouble() {
+    const app = this,
+      model = this._model,
+      viewer = this._scene.viewer,
+      sm = this._sm;
+    const selected = sm.getLastData();
+    if (selected && selected instanceof b2.Follower) {
+      const group = selected.getParent();
+      const nodes = group.getChildren();
+      let nodesArray = nodes.toArray().sort((a, b) => {
+        return a.getCenterLocation().x - b.getCenterLocation().x;
+      });
+      let currentIndex = 0;
+      nodesArray.forEach((node, index) => {
+        if (node.getId() === selected.getId()) {
+          currentIndex = index;
+          return;
+        }
+      });
+      nodesArray.forEach((node, index) => {
+        const name2 =
+          index >= currentIndex
+            ? (index - currentIndex) * 2
+            : (currentIndex - index) * 2 - 1;
+        node.setName2(`${name2}`);
+      });
+    }
+  }
+
+  /**
+   * 左双右单编号，如：10，8, 6, 4, 2, 0, 1, 3, 5, 7, 9, 11, 13, 15
+   */
+  sortLeftDoubleRightSingle() {
+    const app = this,
+      model = this._model,
+      viewer = this._scene.viewer,
+      sm = this._sm;
+    const selected = sm.getLastData();
+    if (selected && selected instanceof b2.Follower) {
+      const group = selected.getParent();
+      const nodes = group.getChildren();
+      let nodesArray = nodes.toArray().sort((a, b) => {
+        return a.getCenterLocation().x - b.getCenterLocation().x;
+      });
+      let currentIndex = 0;
+      nodesArray.forEach((node, index) => {
+        if (node.getId() === selected.getId()) {
+          currentIndex = index;
+          return;
+        }
+      });
+      nodesArray.forEach((node, index) => {
+        const name2 =
+          index > currentIndex
+            ? (index - currentIndex) * 2 - 1
+            : (currentIndex - index) * 2;
+        node.setName2(`${name2}`);
+      });
+    }
   }
 }
